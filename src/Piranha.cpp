@@ -46,7 +46,7 @@ void Piranha::update(float deltaTime) {
         case MOVING: {
             // Moverse hacia la izquierda (desde su posición original hacia la izquierda)
             float progress = elapsedTime / moveDuration;
-            if (progress >= 1.0f) {
+            if (progress >= 4.7f) {
                 state = RETURNING;
                 stateTimer.restart();
             } else {
@@ -60,12 +60,12 @@ void Piranha::update(float deltaTime) {
         case RETURNING: {
             // Regresar a posición original (desde la izquierda hacia la original)
             float progress = elapsedTime / moveDuration;
-            if (progress >= 1.0f) {
+            if (progress >= 4.7f) {
                 sprite.setPosition(originalPosition);
                 state = IDLE;
                 stateTimer.restart();
             } else {
-                float moveDistance = maxMoveDistance * (1.0f - progress);
+                float moveDistance = maxMoveDistance * (4.7f - progress);
                 // durante el retorno, la posición es original - moveDistance
                 sprite.setPosition(originalPosition.x - moveDistance, originalPosition.y);
             }
