@@ -1,0 +1,46 @@
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class Fish {
+private:
+    sf::Texture texture;
+    sf::Sprite sprite;
+    const float max_speed = 5.0f; // definir la velocidad
+    sf::Clock bubbleTimer; // Temporizador para controlar la frecuencia de las burbujas
+    // Intervalos para la emisión de burbujas:
+    float minBubbleInterval = 0.5f; // segundos (lento -> pocas burbujas)
+    float maxBubbleInterval = 0.05f;  // segundos (rápido -> muchas burbujas)
+    float distanceToTarget = 0.0f; // distancia actual al cursor 
+    bool isMoving = false; // Estado de movimiento del pez
+    // Vidas del pez
+    int lives = 20;
+    const int maxLives = 20;
+    // Cooldown para evitar recibir daño continuo al estar en contacto
+    float damageCooldownSeconds = 1.0f;
+    sf::Clock damageClock;
+
+public:
+    Fish();
+    bool load(const std::string& path);
+    void draw(sf::RenderWindow& window);
+    void update(const sf::RenderWindow& window); 
+    
+    // Devuelve la posición de la "cola" para crear la burbuja
+    sf::Vector2f getTailPosition() const;
+
+    // Comprueba si es hora de crear una burbuja
+    bool shouldEmitBubble() const;
+
+    // Los métodos get/move siguen siendo necesarios para la implementación interna
+    sf::Vector2f getPosition() const;
+    void move(const sf::Vector2f& offset);
+    void restartBubbleTimer();
+
+    // Vidas y daño
+    int getLives() const;
+    bool tryTakeDamage(int amount);
+    int getMaxLives() const;
+
+    // Obtener bounds para colisiones
+    sf::FloatRect getGlobalBounds() const;
+};

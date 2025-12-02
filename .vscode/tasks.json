@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-sfml",
+            "type": "shell",
+            "command": "C:/msys64/mingw64/bin/g++.exe",
+            "args": [
+                "-std=c++17",
+                "-I\"${workspaceFolder}/include\"",
+                "-I\"C:/Users/Ascencio/Documents/CETI/POO/SFML/include\"",
+                "\"${workspaceFolder}/src/*.cpp\"",
+                "-o",
+                "\"${workspaceFolder}/build/game.exe\"",
+                "-L\"C:/Users/Ascencio/Documents/CETI/POO/SFML/lib\"",
+                "-lsfml-graphics",
+                "-lsfml-window",
+                "-lsfml-system"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
