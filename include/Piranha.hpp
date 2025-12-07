@@ -14,17 +14,22 @@ private:
     enum State { IDLE, ALERT, MOVING, RETURNING };
     State state;
     float moveSpeed;
-    float maxMoveDistance;  // distancia hacia la derecha
+    float maxMoveDistance;
     
-    // Temporizadores
+    // Temporizadores individuales
     sf::Clock stateTimer;
     sf::Clock alertBlinkTimer;
+    sf::Clock attackCycleTimer;  // temporizador para decidir cuándo atacar
     
     // Duraciones de estados
-    float alertDuration;      // tiempo de parpadeo antes de mover
-    float moveDuration;       // tiempo de movimiento
-    float idleDuration;       // tiempo entre ciclos
-    float alertBlinkInterval; // intervalo de parpadeo
+    float alertDuration;
+    float moveDuration;
+    float idleDuration;
+    float alertBlinkInterval;
+    float attackCycleInterval;  // tiempo entre ciclos de ataque (cada piraña decide independientemente)
+    
+    // Flag para saber si esta piraña debe atacar en este ciclo
+    bool shouldAttackThisCycle;
 
 public:
     // Cargar la textura compartida (una sola vez)

@@ -1,6 +1,7 @@
 #include "../include/Piranha.hpp"
 #include <iostream>
 #include <cmath>
+#include <random>
 
 sf::Texture Piranha::sharedTexture;
 
@@ -9,9 +10,10 @@ bool Piranha::loadTexture(const std::string& path) {
 }
 
 Piranha::Piranha(const sf::Vector2f& position)
-    : originalPosition(position), state(IDLE), moveSpeed(200.0f), 
-      maxMoveDistance(250.0f), alertDuration(2.0f), moveDuration(1.5f), 
-      idleDuration(4.0f), alertBlinkInterval(0.3f) {
+    : originalPosition(position), state(IDLE), moveSpeed(1200.0f), 
+      maxMoveDistance(1200.0f), alertDuration(2.0f), moveDuration(1.5f), 
+      idleDuration(4.0f), alertBlinkInterval(0.3f), attackCycleInterval(6.0f),
+      shouldAttackThisCycle(false) {
     
     sprite.setTexture(sharedTexture);
     // Ajustar origen al centro
@@ -22,14 +24,40 @@ Piranha::Piranha(const sf::Vector2f& position)
     sprite.setScale(5.0f, 5.0f);
     
     stateTimer.restart();
+    attackCycleTimer.restart();
+    
+    // Inicializar aleatoriamente si va a atacar en este ciclo (~40% probabilidad)
+    std::random_device rd;
+    std::mt19937 gen(rd() + std::hash<float>{}(position.x) + std::hash<float>{}(position.y));
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+    shouldAttackThisCycle = (dis(gen) < 0.4);
 }
 
 void Piranha::update(float deltaTime) {
+    // Verificar ciclo de ataque independiente
+    float attackCycleElapsed = attackCycleTimer.getElapsedTime().asSeconds();
+    if (attackCycleElapsed >= attackCycleInterval) {
+        // Generar nueva decisión de ataque para esta piraña (solo si estamos en IDLE)
+        if (state == IDLE) {
+            std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_real_distribution<> dis(0.0, 1.0);
+            shouldAttackThisCycle = (dis(gen) < 0.4); // ~40% probabilidad de atacar
+        }
+        attackCycleTimer.restart();
+    }
+    
+    // Si no está atacando y está en IDLE, permanece en IDLE sin cambiar estado
+    if (!shouldAttackThisCycle && state == IDLE) {
+        return;
+    }
+    
+    // Si está atacando, continuar con la máquina de estados
     float elapsedTime = stateTimer.getElapsedTime().asSeconds();
     
     switch (state) {
         case IDLE:
-            if (elapsedTime >= idleDuration) {
+            if (shouldAttackThisCycle && elapsedTime >= idleDuration) {
                 state = ALERT;
                 stateTimer.restart();
                 alertBlinkTimer.restart();
@@ -44,30 +72,36 @@ void Piranha::update(float deltaTime) {
             break;
             
         case MOVING: {
-            // Moverse hacia la izquierda (desde su posición original hacia la izquierda)
+            // Moverse hacia la izquierda atravesando toda la ventana
             float progress = elapsedTime / moveDuration;
-            if (progress >= 4.7f) {
+            if (progress >= 1.0f) {
+                // Quedarse detenido en el lado izquierdo
+                float finalX = originalPosition.x - maxMoveDistance;
+                sprite.setPosition(finalX, originalPosition.y);
                 state = RETURNING;
                 stateTimer.restart();
             } else {
                 float moveDistance = maxMoveDistance * progress;
-                // restar para moverse a la izquierda
+                // Moverse desde posición original hacia la izquierda
                 sprite.setPosition(originalPosition.x - moveDistance, originalPosition.y);
             }
             break;
         }
             
         case RETURNING: {
-            // Regresar a posición original (desde la izquierda hacia la original)
+            // Regresar desde el lado izquierdo a la posición original
             float progress = elapsedTime / moveDuration;
-            if (progress >= 4.7f) {
+            if (progress >= 1.0f) {
+                // Regresar a la posición original
                 sprite.setPosition(originalPosition);
                 state = IDLE;
                 stateTimer.restart();
             } else {
-                float moveDistance = maxMoveDistance * (4.7f - progress);
-                // durante el retorno, la posición es original - moveDistance
-                sprite.setPosition(originalPosition.x - moveDistance, originalPosition.y);
+                // Moverse desde la posición izquierda (originalPosition.x - maxMoveDistance)
+                // de vuelta a originalPosition.x
+                float startX = originalPosition.x - maxMoveDistance;
+                float returnDistance = maxMoveDistance * progress;
+                sprite.setPosition(startX + returnDistance, originalPosition.y);
             }
             break;
         }

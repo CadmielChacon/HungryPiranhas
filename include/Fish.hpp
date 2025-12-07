@@ -13,8 +13,9 @@ private:
     float distanceToTarget = 0.0f; // distancia actual al cursor 
     bool isMoving = false; // Estado de movimiento del pez
     // Vidas del pez
-    int lives = 20;
-    const int maxLives = 20;
+    static const int MAX_LIVES = 10;
+    int lives = MAX_LIVES;
+
     // Cooldown para evitar recibir daño continuo al estar en contacto
     float damageCooldownSeconds = 1.0f;
     sf::Clock damageClock;

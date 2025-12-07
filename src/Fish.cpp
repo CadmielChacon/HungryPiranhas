@@ -3,7 +3,7 @@
 #include <cmath> // Necesario para std::sqrtf
 #include <SFML/Graphics.hpp>
 
-Fish::Fish() {}
+Fish::Fish() : lives(MAX_LIVES) {}
 
 bool Fish::load(const std::string& path) {
     std::cout << "Cargando: " << path << "\n";
@@ -136,5 +136,5 @@ void Fish::update(const sf::RenderWindow& window) {
     }
 
     int Fish::getMaxLives() const {
-        return maxLives;
+        return MAX_LIVES;
     }

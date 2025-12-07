@@ -27,7 +27,7 @@ Bubble::Bubble(const sf::Vector2f& startPosition, const std::string& texturePath
     sprite.setPosition(startPosition);
 
     // Escalar la burbuja si es muy grande/pequeña
-    sprite.setScale(2.0f, 2.0f); 
+    sprite.setScale(1.5f, 1.5f); 
 }
 
 void Bubble::update(float deltaTime) {

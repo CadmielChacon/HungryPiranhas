@@ -3,6 +3,8 @@
 #include "../include/Bubble.hpp" 
 #include "../include/Piranha.hpp"
 #include "../include/Coral.hpp"
+#include "../include/Can.hpp"
+#include "../include/LivesHUD.hpp"
 #include <iostream>
 #include <vector>
 #include <random>
@@ -43,6 +45,35 @@ int main() {
         std::cerr << "Texturas de coral cargadas exitosamente.\n";
     }
 
+    // Cargar texturas de latas
+    if (!Can::loadTextures("../assets/can1.png", "../assets/can2.png", "../assets/can3.png")) {
+        std::cerr << "Aviso: no se cargaron todas las texturas de latas.\n";
+    } else {
+        std::cerr << "Texturas de latas cargadas exitosamente.\n";
+    }
+
+    // Cargar textura
+    LivesHUD livesHUD;
+    if (!livesHUD.load("../assets/lives.png")) { // Ajusta la ruta y el nombre del archivo
+        std::cerr << "Error Crítico: Terminando el programa porque no se cargó 'lives.png'.\n";
+        return 1;
+    }
+
+    // Cargar textura de fondo
+    sf::Texture backgroundTexture;
+    if (!backgroundTexture.loadFromFile("../assets/sea.png")) {
+        std::cerr << "Aviso: no se pudo cargar la imagen de fondo. Usando color azul.\n";
+    }
+
+    sf::Sprite backgroundSprite(backgroundTexture);
+
+    if (backgroundTexture.getSize().x > 0) {
+        backgroundSprite.setScale(
+            float(window.getSize().x) / backgroundTexture.getSize().x,
+            float(window.getSize().y) / backgroundTexture.getSize().y
+        );
+    }
+
     // Contenedor para las burbujas
     std::vector<Bubble> bubbles;
     // Crear columna de pirañas en el borde derecho (varias)
@@ -56,9 +87,6 @@ int main() {
         piranhas.emplace_back(sf::Vector2f(xPos, startY + i * spacing));
     }
 
-    // Contenedor para burbujas de alerta de pirañas
-    std::vector<std::pair<sf::CircleShape, float>> alertBubbles;  // (burbuja, tiempo de vida)
-
     // Contenedor para corales
     std::vector<Coral> corals;
     sf::Clock coralSpawnTimer;
@@ -69,40 +97,12 @@ int main() {
     std::uniform_real_distribution<> coralXDist(50.0f, 1250.0f);  // posición X aleatoria
     float coralY = 610.0f;  // posición Y fija
 
-    // HUD: fuente y texto para vidas
-    sf::Font hudFont;
-    sf::Text livesText;
-    bool hudEnabled = false;
-    // Intentar cargar fuentes del sistema Windows
-    const char* fontPaths[] = {
-        "C:/Windows/Fonts/arial.ttf",
-        "C:/Windows/Fonts/Arial.ttf",
-        "C:/Windows/Fonts/verdana.ttf",
-        "C:/Windows/Fonts/Verdana.ttf",
-        "../assets/arial.ttf",
-        "../assets/Roboto-Regular.ttf"
-    };
-    
-    for (const char* path : fontPaths) {
-        if (hudFont.loadFromFile(path)) {
-            hudEnabled = true;
-            std::cerr << "Fuente cargada: " << path << std::endl;
-            break;
-        }
-    }
-    
-    if (!hudEnabled) {
-        std::cerr << "Aviso: no se pudo cargar la fuente para el HUD. Vidas no mostradas.\n";
-    }
-
-    if (hudEnabled) {
-        livesText.setFont(hudFont);
-        livesText.setCharacterSize(24);
-        livesText.setFillColor(sf::Color::White);
-        livesText.setOutlineColor(sf::Color::Black);
-        livesText.setOutlineThickness(1.0f);
-        livesText.setPosition(12.0f, 8.0f);
-    }
+    // Contenedor para latas
+    std::vector<Can> cans;
+    sf::Clock canSpawnTimer;
+    float canSpawnInterval = 1.5f;  // cada 1.5 segundos
+    std::uniform_int_distribution<> canTypeDist(0, 2);  // tipo de lata [0, 1, 2]
+    std::uniform_real_distribution<> canXDist(50.0f, 1250.0f);  // posición X aleatoria
 
     // Inicialización completa
     while (window.isOpen()) {
@@ -120,42 +120,18 @@ int main() {
         
         // Lógica
         fish.update(window); 
+        livesHUD.update(fish.getLives());
 
         // Actualizar pirañas
         for (size_t i = 0; i < piranhas.size(); ++i) {
             piranhas[i].update(deltaTime);
-            // Si piraña está en alerta y no hay burbuja de alerta, crear una
-            if (piranhas[i].isAlert()) {
-                // Revisar si ya existe una burbuja de alerta para esta piraña
-                bool bubbleExists = false;
-                for (const auto& pair : alertBubbles) {
-                    if (std::abs(pair.first.getPosition().x - piranhas[i].getAlertBubblePosition().x) < 10.0f) {
-                        bubbleExists = true;
-                        break;
-                    }
-                }
-                if (!bubbleExists) {
-                    // Crear nueva burbuja de alerta
-                    sf::CircleShape bubble(15.0f);
-                    bubble.setFillColor(sf::Color::Yellow);
-                    bubble.setPosition(piranhas[i].getAlertBubblePosition());
-                    alertBubbles.emplace_back(bubble, 2.0f);  // 2 segundos de vida
-                }
-            }
-        }
-
-        // Actualizar y limpiar burbujas de alerta
-        for (int i = alertBubbles.size() - 1; i >= 0; --i) {
-            alertBubbles[i].second -= deltaTime;
-            if (alertBubbles[i].second <= 0.0f) {
-                alertBubbles.erase(alertBubbles.begin() + i);
-            }
         }
 
         // Colisiones con pirañas
         for (size_t i = 0; i < piranhas.size(); ++i) {
             if (fish.getGlobalBounds().intersects(piranhas[i].getGlobalBounds())) {
                 if (fish.tryTakeDamage(1)) {
+                    livesHUD.update(fish.getLives());
                     std::cerr << "Fish hit! Lives: " << fish.getLives() << std::endl;
                     if (fish.getLives() <= 0) {
                         std::cerr << "Fish died. Game over." << std::endl;
@@ -184,6 +160,7 @@ int main() {
         for (size_t i = 0; i < corals.size(); ++i) {
             if (corals[i].isAlive() && fish.getGlobalBounds().intersects(corals[i].getGlobalBounds())) {
                 if (fish.tryTakeDamage(1)) {
+                    livesHUD.update(fish.getLives());
                     std::cerr << "Fish hit by coral! Lives: " << fish.getLives() << std::endl;
                     // Marcar coral como muerto para no causar daño otra vez
                     corals[i] = Coral(sf::Vector2f(-1000.0f, -1000.0f), 0);
@@ -200,6 +177,44 @@ int main() {
         for (int i = corals.size() - 1; i >= 0; --i) {
             if (!corals[i].isAlive()) {
                 corals.erase(corals.begin() + i);
+            }
+        }
+
+        // Spawn aleatorio de latas
+        if (canSpawnTimer.getElapsedTime().asSeconds() >= canSpawnInterval) {
+            int type = canTypeDist(gen);
+            float xPos = canXDist(gen);
+            cans.emplace_back(sf::Vector2f(xPos, -30.0f), type);  // Spawn en la parte superior
+            std::cerr << "Can spawned at X: " << xPos << " Type: " << type << "! Total cans: " << cans.size() << std::endl;
+            canSpawnTimer.restart();
+        }
+
+        // Actualizar latas
+        for (size_t i = 0; i < cans.size(); ++i) {
+            cans[i].update(deltaTime);
+        }
+
+        // Colisiones con latas
+        for (size_t i = 0; i < cans.size(); ++i) {
+            if (cans[i].getIsAlive() && fish.getGlobalBounds().intersects(cans[i].getGlobalBounds())) {
+                if (fish.tryTakeDamage(1)) {
+                    livesHUD.update(fish.getLives());
+                    std::cerr << "Fish hit by can! Lives: " << fish.getLives() << std::endl;
+                    // Marcar lata como muerta para no causar daño otra vez
+                    cans[i].setIsAlive(false);
+                    if (fish.getLives() <= 0) {
+                        std::cerr << "Fish died. Game over." << std::endl;
+                        window.close();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Limpieza de latas muertas
+        for (int i = cans.size() - 1; i >= 0; --i) {
+            if (!cans[i].getIsAlive()) {
+                cans.erase(cans.begin() + i);
             }
         }
 
@@ -224,33 +239,34 @@ int main() {
         }
 
         // Dibujo
-        window.clear(sf::Color::Blue);
+        window.clear();
+        window.draw(backgroundSprite);
         
         // Dibujar burbujas antes del pez
         for (size_t i = 0; i < bubbles.size(); ++i) {
             bubbles[i].draw(window);
-        }
-        // Dibujar pirañas en la columna derecha
-        for (size_t i = 0; i < piranhas.size(); ++i) {
-            piranhas[i].draw(window);
-        }
-
-        // Dibujar burbujas de alerta
-        for (const auto& pair : alertBubbles) {
-            window.draw(pair.first);
         }
 
         // Dibujar corales
         for (size_t i = 0; i < corals.size(); ++i) {
             corals[i].draw(window);
         }
+
+        // Dibujar latas
+        for (size_t i = 0; i < cans.size(); ++i) {
+            cans[i].draw(window);
+        }
         
         fish.draw(window);
-        // Dibujar HUD (vidas) si la fuente se cargó
-        if (hudEnabled) {
-            livesText.setString(std::string("Lives: ") + std::to_string(fish.getLives()) + std::string("/") + std::to_string(fish.getMaxLives()));
-            window.draw(livesText);
+
+        // Dibujar pirañas encima de todo
+        for (size_t i = 0; i < piranhas.size(); ++i) {
+            piranhas[i].draw(window);
         }
+
+        // HUD de vidas
+        livesHUD.draw(window);
+
         window.display();
     }
 
