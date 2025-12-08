@@ -7,7 +7,7 @@ private:
     static sf::Texture sharedTexture;
     sf::Sprite sprite;
     
-    // Posición original (donde está de reposo)
+    // Posición original 
     sf::Vector2f originalPosition;
     
     // Estados y movimiento
@@ -26,16 +26,16 @@ private:
     float moveDuration;
     float idleDuration;
     float alertBlinkInterval;
-    float attackCycleInterval;  // tiempo entre ciclos de ataque (cada piraña decide independientemente)
+    float attackCycleInterval;  // tiempo entre ciclos de ataque 
     
     // Flag para saber si esta piraña debe atacar en este ciclo
     bool shouldAttackThisCycle;
 
 public:
-    // Cargar la textura compartida (una sola vez)
+    // Cargar la textura compartida 
     static bool loadTexture(const std::string& path);
 
-    // Crear piraña en una posición
+    // Crear piraña en una posicion
     Piranha(const sf::Vector2f& position);
 
     void update(float deltaTime);

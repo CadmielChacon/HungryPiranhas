@@ -14,7 +14,7 @@ bool Fish::load(const std::string& path) {
     sprite.setTexture(texture);
     // Obtener el tamaño de la textura
     sf::Vector2u textureSize = texture.getSize();
-    // Esto asegura que la rotación y la posición del sprite se midan desde su centro.
+    // Esto asegura que la rotacion y la posicion del sprite se midan desde su centro.
     sprite.setOrigin(textureSize.x / 2.0f, textureSize.y / 2.0f);
     sprite.setScale(2.0f, 2.0f);
     sprite.setPosition(200, 200);
@@ -30,12 +30,12 @@ sf::Vector2f Fish::getPosition() const {
 }
 
 void Fish::move(const sf::Vector2f& offset) {
-    // Llama al método move del sprite de SFML
+    // Llama al metodo move del sprite de SFML
     sprite.move(offset); 
 }
 
 sf::Vector2f Fish::getTailPosition() const {
-    // Obtener la posición del centro del pez
+    // Obtener la posicion del centro del pez
     sf::Vector2f centerPos = sprite.getPosition();
     
     // Obtener el tamaño de la textura original (antes de escalar)
@@ -43,10 +43,10 @@ sf::Vector2f Fish::getTailPosition() const {
     float originalWidth = textureSize.x;
     float scale = sprite.getScale().x; // Ambas escalas deberían ser iguales
     
-    // la cola está a -width/2 de distancia
+    // la cola esta a -width/2 de distancia
     float tailDistance = (originalWidth / 2.0f) * scale;
     
-    // Obtener la rotación del pez en radianes
+    // Obtener la rotacion del pez en radianes
     float rotationDegrees = sprite.getRotation();
     float rotationRadians = rotationDegrees * 3.14159265f / 180.0f;
     
@@ -54,7 +54,7 @@ sf::Vector2f Fish::getTailPosition() const {
     float offsetX = tailDistance * std::cos(rotationRadians);
     float offsetY = tailDistance * std::sin(rotationRadians);
     
-    // Retornar la posición de la cola
+    // Retornar la posicion de la cola
     return centerPos + sf::Vector2f(offsetX, offsetY);
 }
 
@@ -93,19 +93,19 @@ void Fish::update(const sf::RenderWindow& window) {
         // Aplica el movimiento
         sprite.move(movimiento);
     } else {
-        // Si está muy cerca, no se mueve
+        // Si esta muy cerca, no se mueve
         }
 }
     bool Fish::shouldEmitBubble() const {
         if (isMoving) {
             // Mapear distancia [0..500px] a ratio [0..1]
-            // Distancias grandes = pez lejos = se mueve rápido = más burbujas
+            // Distancias grandes = pez lejos = se mueve rapido = mas burbujas
             float maxDistance = 500.0f; // puedes ajustar este valor
             float speedRatio = distanceToTarget / maxDistance;
             if (speedRatio < 0.0f) speedRatio = 0.0f;
             if (speedRatio > 1.0f) speedRatio = 1.0f;
-            // Cuando speedRatio = 1 (lejos) -> intervalo mínimo (muchas burbujas)
-            // Cuando speedRatio = 0 (cerca) -> intervalo máximo (pocas burbujas)
+            // Cuando speedRatio = 1 (lejos) -> intervalo minimo (muchas burbujas)
+            // Cuando speedRatio = 0 (cerca) -> intervalo maximo (pocas burbujas)
             float interval = minBubbleInterval + (1.0f - speedRatio) * (maxBubbleInterval - minBubbleInterval);
             return bubbleTimer.getElapsedTime().asSeconds() >= interval;
         }
@@ -137,4 +137,12 @@ void Fish::update(const sf::RenderWindow& window) {
 
     int Fish::getMaxLives() const {
         return MAX_LIVES;
+    }
+
+    void Fish::reset() {
+        lives = MAX_LIVES; // Reiniciar las vidas
+        bubbleTimer.restart(); // Reiniciar el temporizador de burbujas
+        damageClock.restart(); // Reiniciar el temporizador de daño
+        sprite.setPosition(200, 200); // Restaurar la posición inicial
+        isMoving = false; // Detener el movimiento
     }

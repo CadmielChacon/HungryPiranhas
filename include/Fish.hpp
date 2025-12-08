@@ -8,8 +8,8 @@ private:
     const float max_speed = 5.0f; // definir la velocidad
     sf::Clock bubbleTimer; // Temporizador para controlar la frecuencia de las burbujas
     // Intervalos para la emisión de burbujas:
-    float minBubbleInterval = 0.5f; // segundos (lento -> pocas burbujas)
-    float maxBubbleInterval = 0.05f;  // segundos (rápido -> muchas burbujas)
+    float minBubbleInterval = 0.5f; 
+    float maxBubbleInterval = 0.05f;  
     float distanceToTarget = 0.0f; // distancia actual al cursor 
     bool isMoving = false; // Estado de movimiento del pez
     // Vidas del pez
@@ -26,13 +26,13 @@ public:
     void draw(sf::RenderWindow& window);
     void update(const sf::RenderWindow& window); 
     
-    // Devuelve la posición de la "cola" para crear la burbuja
+    // Devuelve la posición de la cola para crear la burbuja
     sf::Vector2f getTailPosition() const;
 
     // Comprueba si es hora de crear una burbuja
     bool shouldEmitBubble() const;
 
-    // Los métodos get/move siguen siendo necesarios para la implementación interna
+    // Los metodos get/move siguen siendo necesarios para la implementacion interna
     sf::Vector2f getPosition() const;
     void move(const sf::Vector2f& offset);
     void restartBubbleTimer();
@@ -44,4 +44,7 @@ public:
 
     // Obtener bounds para colisiones
     sf::FloatRect getGlobalBounds() const;
+
+    // Reiniciar el estado del pez
+    void reset();
 };

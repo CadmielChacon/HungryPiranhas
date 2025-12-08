@@ -48,8 +48,8 @@ void Can::update(float deltaTime) {
     position.y += moveSpeed * deltaTime;
     sprite.setPosition(position);
     
-    // Verificar si salió de la ventana (abajo)
-    if (position.y > 700.0f + 50.0f) {  // Un poco más allá del borde inferior
+    // Verificar si salio de la ventana
+    if (position.y > 700.0f + 50.0f) {  // Un poco mas alla del borde inferior
         isAlive = false;
     }
 }

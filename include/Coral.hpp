@@ -9,7 +9,7 @@ private:
     bool alive;
 
 public:
-    // Cargar las 4 texturas de coral (una sola vez)
+    // Cargar las 4 texturas de coral 
     static bool loadTextures(const std::string& path1, const std::string& path2,
                              const std::string& path3, const std::string& path4);
 

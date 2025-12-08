@@ -27,7 +27,7 @@ bool Coral::loadTextures(const std::string& path1, const std::string& path2,
 
 Coral::Coral(const sf::Vector2f& position, int coralType) : alive(true) {
     
-    // Asegurar que coralType está en rango [0, 3]
+    // Asegurar que coralType está en rango
     if (coralType < 0) coralType = 0;
     if (coralType > 3) coralType = 3;
     
@@ -42,8 +42,8 @@ Coral::Coral(const sf::Vector2f& position, int coralType) : alive(true) {
 }
 
 void Coral::update(float deltaTime) {
-    // Los corales son estáticos, no hay nada que actualizar
-    (void)deltaTime;  // evitar warning de parámetro no usado
+    // Los corales son estaticos, no hay nada que actualizar
+    (void)deltaTime;  // evitar warning de parametro no usado
 }
 
 void Coral::draw(sf::RenderWindow& window) {

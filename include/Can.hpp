@@ -8,7 +8,7 @@ class Can {
 private:
     sf::Sprite sprite;
     sf::Vector2f position;
-    float moveSpeed;  // píxeles por segundo (hacia abajo)
+    float moveSpeed;  // píxeles por segundo 
     bool isAlive;
     int canType;  // 0 = can1, 1 = can2, 2 = can3
     

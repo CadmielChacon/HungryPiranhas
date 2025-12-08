@@ -19,7 +19,7 @@ void LivesHUD::update(int lives) {
     if (lives > MAX_LIVES) lives = MAX_LIVES;
 
     sprite.setTextureRect(sf::IntRect(
-        FRAME_WIDTH * (MAX_LIVES - lives), // ← Frame correcto
+        FRAME_WIDTH * (MAX_LIVES - lives),
         0,
         FRAME_WIDTH,
         FRAME_HEIGHT

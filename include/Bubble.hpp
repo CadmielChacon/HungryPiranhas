@@ -1,17 +1,17 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <string> // Necesario para std::string
+#include <string> 
 
 class Bubble {
 private:
     static sf::Texture sharedTexture; // Textura compartida entre todas las burbujas
     sf::Sprite sprite;   // Sprite de la burbuja
 
-    float lifeTime;      // Tiempo de vida restante de la burbuja (en segundos)
+    float lifeTime;      // Tiempo de vida restante de la burbuja
     float initialLifeTime; // Tiempo de vida inicial para normalización
     float upwardSpeed;   // Velocidad a la que la burbuja sube
 
-    bool alive;          // Estado para saber si la burbuja está "viva"
+    bool alive;          // Estado para saber si la burbuja está viva
 
 public:
     // Cargar la textura compartida una sola vez
@@ -20,7 +20,7 @@ public:
     Bubble(const sf::Vector2f& startPosition, const std::string& texturePath, 
            float initialLifeTime, float initialUpwardSpeed);
 
-    // Actualiza el estado de la burbuja (movimiento, desvanecimiento).
+    // Actualiza el estado de la burbuja 
     void update(float deltaTime); 
 
     // Dibuja la burbuja en la ventana.
@@ -29,6 +29,6 @@ public:
     // Comprueba si la burbuja sigue viva.
     bool isAlive() const;
 
-    // Obtiene la posición de la burbuja (útil para depuración).
+    // Obtiene la posición de la burbuja 
     sf::Vector2f getPosition() const;
 };
