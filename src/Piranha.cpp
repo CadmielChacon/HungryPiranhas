@@ -10,10 +10,11 @@ bool Piranha::loadTexture(const std::string& path) {
 }
 
 Piranha::Piranha(const sf::Vector2f& position)
-    : originalPosition(position), state(IDLE), moveSpeed(1200.0f), 
-      maxMoveDistance(1200.0f), alertDuration(2.0f), moveDuration(1.5f), 
-      idleDuration(4.0f), alertBlinkInterval(0.3f), attackCycleInterval(6.0f),
-      shouldAttackThisCycle(false) {
+        : originalPosition(position), state(IDLE), moveSpeed(1200.0f),
+            maxMoveDistance(1200.0f), baseMoveDuration(1.5f),
+            alertDuration(2.0f), moveDuration(1.5f), idleDuration(4.0f),
+            alertBlinkInterval(0.3f), attackCycleInterval(6.0f),
+            shouldAttackThisCycle(false) {
     
     sprite.setTexture(sharedTexture);
     // Ajustar origen al centro
@@ -31,6 +32,17 @@ Piranha::Piranha(const sf::Vector2f& position)
     std::mt19937 gen(rd() + std::hash<float>{}(position.x) + std::hash<float>{}(position.y));
     std::uniform_real_distribution<> dis(0.0, 1.0);
     shouldAttackThisCycle = (dis(gen) < 0.4);
+}
+
+void Piranha::applyDifficulty(float multiplier) {
+    if (multiplier <= 0.0f) return;
+    // Higher multiplier -> shorter move duration -> faster movement
+    moveDuration = baseMoveDuration / multiplier;
+    moveSpeed = 1200.0f * multiplier;
+}
+
+float Piranha::getBaseMoveSpeed() const {
+    return 1200.0f;
 }
 
 void Piranha::update(float deltaTime) {

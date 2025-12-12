@@ -22,6 +22,23 @@ bool Fish::load(const std::string& path) {
 }
 
 void Fish::draw(sf::RenderWindow& window) {
+    // Aplicar efecto de parpadeo si está herido
+    if (m_isHit) {
+        // Verificar si el tiempo de daño ya pasó
+        if (m_hitTimer.getElapsedTime().asSeconds() > HIT_DURATION) {
+            m_isHit = false;
+            sprite.setColor(sf::Color::White); // Restaurar color normal
+        } else {
+            // Parpadeo: alternar entre visible (opaco) y semitransparente
+            int blinkCycle = static_cast<int>(m_hitTimer.getElapsedTime().asMilliseconds() / 100) % 2;
+            if (blinkCycle == 0) {
+                sprite.setColor(sf::Color::White); // Visible
+            } else {
+                sprite.setColor(sf::Color(255, 255, 255, 128)); // Semitransparente
+            }
+        }
+    }
+    
     window.draw(sprite);
 }
 
@@ -61,6 +78,16 @@ sf::Vector2f Fish::getTailPosition() const {
 void Fish::update(const sf::RenderWindow& window) {
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
     sf::Vector2f objetivo(mousePos.x, mousePos.y);
+    
+    // Aplicar clamping al objetivo para que no salga de la pantalla
+    sf::Vector2u windowSize = window.getSize();
+    sf::Vector2u textureSize = texture.getSize();
+    float fishWidth = textureSize.x * sprite.getScale().x;
+    float fishHeight = textureSize.y * sprite.getScale().y;
+    
+    objetivo.x = std::max(fishWidth / 2.0f, std::min(objetivo.x, float(windowSize.x) - fishWidth / 2.0f));
+    objetivo.y = std::max(fishHeight / 2.0f, std::min(objetivo.y, float(windowSize.y) - fishHeight / 2.0f));
+    
     sf::Vector2f posPez = sprite.getPosition(); // Usamos sprite.getPosition() directamente
     sf::Vector2f direccion = objetivo - posPez;
     isMoving = false;
@@ -135,14 +162,42 @@ void Fish::update(const sf::RenderWindow& window) {
         return sprite.getGlobalBounds();
     }
 
+    sf::FloatRect Fish::getHitbox() const {
+        sf::FloatRect bounds = sprite.getGlobalBounds();
+        // Reducir el hitbox al 70% del tamaño original (30% de reducción)
+        float reductionFactor = 0.70f;
+        float widthReduction = bounds.width * (1.0f - reductionFactor) / 2.0f;
+        float heightReduction = bounds.height * (1.0f - reductionFactor) / 2.0f;
+        
+        // Centrar el hitbox reducido respecto al sprite
+        sf::FloatRect hitbox(
+            bounds.left + widthReduction,
+            bounds.top + heightReduction,
+            bounds.width * reductionFactor,
+            bounds.height * reductionFactor
+        );
+        
+        return hitbox;
+    }
+
     int Fish::getMaxLives() const {
         return MAX_LIVES;
+    }
+
+    void Fish::hit() {
+        // Si ya está herido, no activar el efecto nuevamente
+        if (m_isHit) return;
+        
+        m_isHit = true;
+        m_hitTimer.restart();
     }
 
     void Fish::reset() {
         lives = MAX_LIVES; // Reiniciar las vidas
         bubbleTimer.restart(); // Reiniciar el temporizador de burbujas
         damageClock.restart(); // Reiniciar el temporizador de daño
+        m_isHit = false; // Resetear estado de daño
+        sprite.setColor(sf::Color::White); // Restaurar color normal
         sprite.setPosition(200, 200); // Restaurar la posición inicial
         isMoving = false; // Detener el movimiento
     }

@@ -29,3 +29,11 @@ void LivesHUD::update(int lives) {
 void LivesHUD::draw(sf::RenderWindow& window) {
     window.draw(sprite);
 }
+
+sf::Vector2f LivesHUD::getPosition() const {
+    return sprite.getPosition();
+}
+
+float LivesHUD::getWidth() const {
+    return sprite.getGlobalBounds().width;
+}

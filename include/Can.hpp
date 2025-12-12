@@ -19,7 +19,7 @@ public:
     
     static bool loadTextures(const std::string& path1, const std::string& path2, const std::string& path3);
     
-    void update(float deltaTime);
+    void update(float deltaTime, float difficultyMultiplier = 1.0f);
     void draw(sf::RenderWindow& window);
     
     sf::FloatRect getGlobalBounds() const;

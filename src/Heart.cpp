@@ -1,6 +1,6 @@
 #include "../include/Heart.hpp"
 
-Heart::Heart() : currentFrame(0), isVisible(false) {}
+Heart::Heart() : currentFrame(0), isVisible(false), fallSpeed(200.0f) {}
 
 bool Heart::loadTexture(const std::string& path) {
     if (!texture.loadFromFile(path)) {
@@ -21,6 +21,11 @@ void Heart::spawn(const sf::Vector2f& position) {
 
 void Heart::update(float deltaTime) {
     if (!isVisible) return;
+
+    // Hacer caer el corazón verticalmente
+    sf::Vector2f currentPos = sprite.getPosition();
+    currentPos.y += fallSpeed * deltaTime;
+    sprite.setPosition(currentPos);
 
     // Actualizar la animación
     if (animationClock.getElapsedTime().asSeconds() > 0.2f) { // Cambiar frame cada 0.2s

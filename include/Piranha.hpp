@@ -15,6 +15,8 @@ private:
     State state;
     float moveSpeed;
     float maxMoveDistance;
+    // Base move duration preserved so difficulty can scale speed
+    float baseMoveDuration;
     
     // Temporizadores individuales
     sf::Clock stateTimer;
@@ -37,6 +39,10 @@ public:
 
     // Crear piraña en una posicion
     Piranha(const sf::Vector2f& position);
+
+    // Apply a global difficulty multiplier (1.0 = normal). Higher -> faster movement
+    void applyDifficulty(float multiplier);
+    float getBaseMoveSpeed() const;
 
     void update(float deltaTime);
     void draw(sf::RenderWindow& window);

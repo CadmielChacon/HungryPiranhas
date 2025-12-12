@@ -1,3 +1,11 @@
+// Tiempo total jugado (no aumenta en pausa)
+// Actualizar y mostrar el tiempo jugado (usar totalGameTime)
+// Actualizar y mostrar el tiempo jugado (usar totalGameTime)
+// Actualizar y mostrar el tiempo jugado (usar totalGameTime)
+// Mostrar tiempo final en game over (usar totalGameTime)
+// Mostrar tiempo final en game over (usar totalGameTime)
+// Mostrar tiempo final en game over (usar totalGameTime)
+// Mostrar tiempo final en game over (usar totalGameTime)
 #include <SFML/Graphics.hpp>
 #include "../include/Fish.hpp"
 #include "../include/Bubble.hpp" 
@@ -90,6 +98,19 @@ int main() {
         piranhas.emplace_back(sf::Vector2f(xPos, startY + i * spacing));
     }
 
+    // Dificultad del juego: variable maestra que aumenta lentamente
+    float gameDifficulty = 1.0f; // empieza en 1.0 (normal)
+    const float DIFFICULTY_INTERVAL = 10.0f; // cada 10 segundos
+    const float DIFFICULTY_STEP = 0.1f; // incremento de +0.1 por intervalo
+    const float MAX_DIFFICULTY = 3.0f; // límite máximo para evitar imposibilidad
+    // Tiempo total jugado (no aumenta en pausa)
+    float totalGameTime = 0.0f;
+    float lastDifficultyTime = 0.0f;
+    
+    // Guardar los tiempos base de spawn para poder escalarlos
+    float baseCoralSpawnInterval = 2.0f;
+    float baseCanSpawnInterval = 1.5f;
+
     // Contenedor para corales
     std::vector<Coral> corals;
     sf::Clock coralSpawnTimer;
@@ -142,6 +163,13 @@ int main() {
     timerText.setFillColor(sf::Color::White);
     timerText.setStyle(sf::Text::Bold);
 
+    // Texto para el menú (pausa/game over)
+    sf::Text statusText;
+    statusText.setFont(font);
+    statusText.setCharacterSize(50);
+    statusText.setFillColor(sf::Color::White);
+    statusText.setStyle(sf::Text::Bold);
+
     // Cargar textura y sprite para el boton de reinicio
     sf::Texture rebootTexture;
     if (!rebootTexture.loadFromFile("../assets/reboot.png")) {
@@ -168,33 +196,76 @@ int main() {
         gameOverSprite.getPosition().y + 240.0f
     );
 
+    // Crear sprite de resume (reutilizar reboot para pausa)
+    sf::Sprite resumeSprite = rebootSprite; // Resume usa el mismo sprite que reboot para simplicidad
+
+    // Estado de pausa y game over
+    bool isPaused = false;
+    bool isGameOver = false;
+
     // Inicialización completa
     sf::Clock deltaClock; // Crear un reloj separado para deltaTime
     while (window.isOpen()) {
         // Calcular el tiempo que paso desde el ultimo frame
         sf::Time dt = deltaClock.restart();
         float deltaTime = dt.asSeconds(); // DeltaTime en segundos
+        // Acumular tiempo de juego solo cuando no está en pausa ni en game over
+        if (!isPaused && !isGameOver) {
+            totalGameTime += deltaTime;
+        }
         
         // Manejo de eventos
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+            // Detectar tecla Space para pausar/reanudar
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
+                if (!isGameOver) {
+                    isPaused = !isPaused;
+                }
+            }
         }
         
-        // Lógica
-        fish.update(window); 
+        // Lógica - SOLO si no está pausado ni en game over
+        if (!isPaused && !isGameOver) {
+            fish.update(window); 
+        }
         livesHUD.update(fish.getLives());
 
-        // Actualizar pirañas
+        // Actualizar temporizador en pantalla (esquina superior derecha, solo si no estamos en menu)
+        if (!isPaused && !isGameOver) {
+            int seconds = static_cast<int>(totalGameTime);
+            timerText.setString(std::string("Tiempo: ") + std::to_string(seconds) + "s");
+            float posX = window.getSize().x - timerText.getGlobalBounds().width - 20.0f;
+            float posY = 20.0f;
+            timerText.setPosition(posX, posY);
+        }
+
+        // Solo actualizar lógica de juego si no está pausado y no está en game over
+        if (!isPaused && !isGameOver) {
+
+        // Actualizar dificultad basada en totalGameTime cada DIFFICULTY_INTERVAL segundos
+        if (totalGameTime - lastDifficultyTime >= DIFFICULTY_INTERVAL) {
+            gameDifficulty += DIFFICULTY_STEP;
+            if (gameDifficulty > MAX_DIFFICULTY) {
+                gameDifficulty = MAX_DIFFICULTY;
+            }
+            lastDifficultyTime = totalGameTime;
+            std::cerr << "Difficulty increased: " << gameDifficulty << " (max: " << MAX_DIFFICULTY << ")" << std::endl;
+        }
+
+        // Actualizar pirañas (aplicar dificultad antes de actualizar)
         for (size_t i = 0; i < piranhas.size(); ++i) {
+            piranhas[i].applyDifficulty(gameDifficulty);
             piranhas[i].update(deltaTime);
         }
 
         // Colisiones con pirañas
         for (size_t i = 0; i < piranhas.size(); ++i) {
-            if (fish.getGlobalBounds().intersects(piranhas[i].getGlobalBounds())) {
+            if (fish.getHitbox().intersects(piranhas[i].getGlobalBounds()) && !fish.isHit()) {
                 if (fish.tryTakeDamage(1)) {
+                    fish.hit(); // Activar efecto de parpadeo e invulnerabilidad temporal
                     livesHUD.update(fish.getLives());
                     std::cerr << "Fish hit! Lives: " << fish.getLives() << std::endl;
                     if (fish.getLives() <= 0) {
@@ -287,7 +358,9 @@ int main() {
                                         
                                         // Reiniciar el juego después del contador
                                         fish.reset();
-                                        gameClock.restart();
+                                        totalGameTime = 0.0f;
+                                        lastDifficultyTime = 0.0f;
+                                        gameDifficulty = 1.0f;
                                         corals.clear();
                                         cans.clear();
                                         bubbles.clear();
@@ -310,7 +383,8 @@ int main() {
             }
         }
 
-        // Spawn aleatorio de corales
+        // Spawn aleatorio de corales con frecuencia escalada por dificultad
+        coralSpawnInterval = baseCoralSpawnInterval / gameDifficulty;
         if (coralSpawnTimer.getElapsedTime().asSeconds() >= coralSpawnInterval) {
             int type = coralTypeDist(gen);
             float xPos = coralXDist(gen);
@@ -326,8 +400,9 @@ int main() {
 
         // Colisiones con corales
         for (size_t i = 0; i < corals.size(); ++i) {
-            if (corals[i].isAlive() && fish.getGlobalBounds().intersects(corals[i].getGlobalBounds())) {
+            if (corals[i].isAlive() && fish.getHitbox().intersects(corals[i].getGlobalBounds()) && !fish.isHit()) {
                 if (fish.tryTakeDamage(1)) {
+                    fish.hit(); // Activar efecto de parpadeo e invulnerabilidad temporal
                     livesHUD.update(fish.getLives());
                     std::cerr << "Fish hit by coral! Lives: " << fish.getLives() << std::endl;
                     // Marcar coral como muerto para no causar daño otra vez
@@ -422,7 +497,9 @@ int main() {
                                         
                                         // Reiniciar el juego despues del contador
                                         fish.reset();
-                                        gameClock.restart();
+                                        totalGameTime = 0.0f;
+                                        lastDifficultyTime = 0.0f;
+                                        gameDifficulty = 1.0f;
                                         corals.clear();
                                         cans.clear();
                                         bubbles.clear();
@@ -452,7 +529,8 @@ int main() {
             }
         }
 
-        // Spawn aleatorio de latas
+        // Spawn aleatorio de latas con frecuencia escalada por dificultad
+        canSpawnInterval = baseCanSpawnInterval / gameDifficulty;
         if (canSpawnTimer.getElapsedTime().asSeconds() >= canSpawnInterval) {
             int type = canTypeDist(gen);
             float xPos = canXDist(gen);
@@ -461,15 +539,16 @@ int main() {
             canSpawnTimer.restart();
         }
 
-        // Actualizar latas
+        // Actualizar latas (con dificultad aplicada)
         for (size_t i = 0; i < cans.size(); ++i) {
-            cans[i].update(deltaTime);
+            cans[i].update(deltaTime, gameDifficulty);
         }
 
         // Colisiones con latas
         for (size_t i = 0; i < cans.size(); ++i) {
-            if (cans[i].getIsAlive() && fish.getGlobalBounds().intersects(cans[i].getGlobalBounds())) {
+            if (cans[i].getIsAlive() && fish.getHitbox().intersects(cans[i].getGlobalBounds()) && !fish.isHit()) {
                 if (fish.tryTakeDamage(1)) {
+                    fish.hit(); // Activar efecto de parpadeo e invulnerabilidad temporal
                     livesHUD.update(fish.getLives());
                     std::cerr << "Fish hit by can! Lives: " << fish.getLives() << std::endl;
                     // Marcar lata como muerta para no causar daño otra vez
@@ -564,7 +643,9 @@ int main() {
                                         
                                         // Reiniciar el juego despues del contador
                                         fish.reset();
-                                        gameClock.restart();
+                                        totalGameTime = 0.0f;
+                                        lastDifficultyTime = 0.0f;
+                                        gameDifficulty = 1.0f;
                                         corals.clear();
                                         cans.clear();
                                         bubbles.clear();
@@ -622,8 +703,13 @@ int main() {
             heartSpawnTimer.restart();
         }
 
-        // Actualizar el corazon
+        // Actualizar el corazon (fuera del bloque de pausa para que siempre caiga)
         heart.update(deltaTime);
+        
+        // Eliminar corazon si sale de la pantalla
+        if (heart.getIsVisible() && heart.getGlobalBounds().getPosition().y > window.getSize().y) {
+            heart.setIsVisible(false);
+        }
 
         // Detectar colisiones con el corazon
         if (heart.getIsVisible() && fish.getGlobalBounds().intersects(heart.getGlobalBounds())) {
@@ -632,6 +718,13 @@ int main() {
             }
             heart.setIsVisible(false); // Desaparecer el corazon
         }
+
+        // Verificar si el pez perdió todas sus vidas
+        if (fish.getLives() <= 0) {
+            isGameOver = true;
+            window.setMouseCursorVisible(true);
+        }
+        } // Fin de if (!isPaused && !isGameOver)
 
         // Dibujo
         window.clear();
@@ -662,22 +755,76 @@ int main() {
         // HUD de vidas
         livesHUD.draw(window);
 
+        // Temporizador en pantalla (sobre el HUD) - solo si no estamos en menu
+        if (!isPaused && !isGameOver) {
+            window.draw(timerText);
+        }
+
         // Dibujar el corazon
         heart.draw(window);
 
-        // Verificar si el pez se quedó sin vidas
-        if (fish.getLives() <= 0) {
-            window.draw(gameOverSprite); // Dibujar la imagen de game over
-            window.display(); // Mostrar la imagen
+        // Menú unificado: Pausa o Game Over
+        if (isPaused && !isGameOver) {
+            // UI Minimalista de Pausa: Solo el texto
+            statusText.setString("PAUSA");
+            statusText.setPosition(
+                (window.getSize().x - statusText.getGlobalBounds().width) / 2.0f,
+                window.getSize().y / 2.0f
+            );
+            window.draw(statusText);
+        } else if (isGameOver) {
+            // UI Completa de Game Over: Panel, botones y textos
+            window.draw(gameOverSprite); // Dibujar fondo de menú
+            
+            statusText.setString("GAME OVER");
+            statusText.setPosition(
+                (window.getSize().x - statusText.getGlobalBounds().width) / 2.0f,
+                gameOverSprite.getPosition().y + 50.0f
+            );
+            window.draw(statusText);
+            
+            // Mostrar tiempo final
+            int totalSeconds = static_cast<int>(totalGameTime);
+            int minutes = totalSeconds / 60;
+            int seconds = totalSeconds % 60;
+            std::string minutesStr = (minutes < 10 ? "0" : "") + std::to_string(minutes);
+            std::string secondsStr = (seconds < 10 ? "0" : "") + std::to_string(seconds);
+            timerText.setString(std::string("Tiempo: ") + minutesStr + ":" + secondsStr);
+            timerText.setCharacterSize(30);
+            timerText.setPosition(
+                (window.getSize().x - timerText.getGlobalBounds().width) / 2.0f,
+                gameOverSprite.getPosition().y + 150.0f
+            );
+            window.draw(timerText);
+            
+            // Dibujar botones de reinicio y salida
+            window.draw(rebootSprite);
+            window.draw(exitSprite);
+        }
 
-            // Pausar el juego
-            while (true) {
-                sf::Event event;
-                while (window.pollEvent(event)) {
-                    if (event.type == sf::Event::Closed) {
-                        window.close();
-                        return 0;
-                    }
+        // Manejo de eventos en menús (pausa o game over) - clics de botones
+        if (isPaused || isGameOver) {
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                if (isPaused && resumeSprite.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                    // Resume: volver al juego
+                    isPaused = false;
+                } else if (isGameOver && rebootSprite.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                    // Reiniciar juego
+                    fish.reset();
+                    totalGameTime = 0.0f;
+                    lastDifficultyTime = 0.0f;
+                    gameDifficulty = 1.0f;
+                    corals.clear();
+                    cans.clear();
+                    bubbles.clear();
+                    heart.setIsVisible(false);
+                    isPaused = false;
+                    isGameOver = false;
+                    window.setMouseCursorVisible(false);
+                } else if (isGameOver && exitSprite.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                    window.close();
+                    return 0;
                 }
             }
         }

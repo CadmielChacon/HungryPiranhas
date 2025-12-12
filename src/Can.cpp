@@ -41,11 +41,12 @@ Can::Can(const sf::Vector2f& startPos, int type)
     sprite.setScale(3.0f, 3.0f);
 }
 
-void Can::update(float deltaTime) {
+void Can::update(float deltaTime, float difficultyMultiplier) {
     if (!isAlive) return;
     
-    // Moverse hacia abajo
-    position.y += moveSpeed * deltaTime;
+    // Moverse hacia abajo con dificultad escalada
+    float scaledSpeed = moveSpeed * difficultyMultiplier;
+    position.y += scaledSpeed * deltaTime;
     sprite.setPosition(position);
     
     // Verificar si salio de la ventana

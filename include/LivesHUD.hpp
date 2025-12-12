@@ -17,5 +17,9 @@ public:
 
     void update(int lives);
     void draw(sf::RenderWindow& window);
+
+    // Accessors for UI placement
+    sf::Vector2f getPosition() const;
+    float getWidth() const;
 };
 
