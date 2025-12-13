@@ -44,6 +44,9 @@ public:
     void applyDifficulty(float multiplier);
     float getBaseMoveSpeed() const;
 
+    // Forcing an attack from external game logic (used to trigger piranha activation)
+    void triggerAttackNow();
+
     void update(float deltaTime);
     void draw(sf::RenderWindow& window);
     

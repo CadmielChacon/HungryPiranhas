@@ -164,17 +164,14 @@ void Fish::update(const sf::RenderWindow& window) {
 
     sf::FloatRect Fish::getHitbox() const {
         sf::FloatRect bounds = sprite.getGlobalBounds();
-        // Reducir el hitbox al 70% del tamaño original (30% de reducción)
-        float reductionFactor = 0.70f;
-        float widthReduction = bounds.width * (1.0f - reductionFactor) / 2.0f;
-        float heightReduction = bounds.height * (1.0f - reductionFactor) / 2.0f;
-        
-        // Centrar el hitbox reducido respecto al sprite
+        // Hitbox ultraprecisa: 40% del tamaño del sprite, centrado
+        // Centrado: left = bounds.left + (bounds.width * 0.3f)
+        //         top = bounds.top + (bounds.height * 0.3f)
         sf::FloatRect hitbox(
-            bounds.left + widthReduction,
-            bounds.top + heightReduction,
-            bounds.width * reductionFactor,
-            bounds.height * reductionFactor
+            bounds.left + (bounds.width * 0.3f),
+            bounds.top + (bounds.height * 0.3f),
+            bounds.width * 0.4f,
+            bounds.height * 0.4f
         );
         
         return hitbox;

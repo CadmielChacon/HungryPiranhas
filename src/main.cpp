@@ -7,6 +7,7 @@
 // Mostrar tiempo final en game over (usar totalGameTime)
 // Mostrar tiempo final en game over (usar totalGameTime)
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include "../include/Fish.hpp"
 #include "../include/Bubble.hpp" 
 #include "../include/Piranha.hpp"
@@ -19,13 +20,22 @@
 #include <random>
 #include <iomanip> 
 #include <sstream> 
+#include <cstdlib>
+#include <ctime>
 
 sf::Clock gameClock;
+// Estados del juego (Menu / Play / GameOver)
+enum GameState { MENU, PLAY, GAMEOVER };
+GameState currentState = MENU; // Arranca en MENU
+
 int main() {
     sf::RenderWindow window(sf::VideoMode(1300, 700), "Hungry Piranhas");
 
-    // ocultar el cursor
-    window.setMouseCursorVisible(false);
+    // Mostrar el cursor al inicio (el juego arranca en MENU)
+    window.setMouseCursorVisible(true);
+
+    // Semilla para rand() usado en la cinemática del menú
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
 
     Fish fish;
     
@@ -85,6 +95,127 @@ int main() {
         );
     }
 
+    // Assets del menú principal
+    sf::Texture seaMenuTexture;
+    if (!seaMenuTexture.loadFromFile("../assets/sea.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'sea.png' para el menú." << std::endl;
+    }
+    sf::Sprite seaSprite(seaMenuTexture);
+    if (seaMenuTexture.getSize().x > 0 && seaMenuTexture.getSize().y > 0) {
+        float scaleX = static_cast<float>(window.getSize().x) / seaMenuTexture.getSize().x;
+        float scaleY = static_cast<float>(window.getSize().y) / seaMenuTexture.getSize().y;
+        seaSprite.setScale(scaleX, scaleY);
+    } else {
+        seaSprite.setScale(1.0f, 1.0f);
+    }
+    seaSprite.setPosition(0.0f, 0.0f);
+
+    sf::Texture menuTexture;
+    if (!menuTexture.loadFromFile("../assets/menu.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'menu.png' para el menú." << std::endl;
+    }
+    sf::Sprite menuSprite(menuTexture);
+    menuSprite.setScale(8.0f, 8.0f);
+    // Centrar usando el tamaño global (ya incluye la escala)
+    sf::FloatRect menuBounds = menuSprite.getGlobalBounds();
+    menuSprite.setPosition(
+        (window.getSize().x - menuBounds.width) / 2.0f,
+        (window.getSize().y - menuBounds.height) / 2.0f
+    );
+
+    // Rectángulo del botón de SALIR (pixel art coords * escala 8)
+    sf::FloatRect exitButtonRect(73 * 8.0f, 63 * 8.0f, 13 * 8.0f, 10 * 8.0f);
+    
+    // Rectángulo del botón de PLAY (pixel art coords * escala 8)
+    sf::FloatRect playButtonRect(73 * 8.0f, 30 * 8.0f, 13 * 8.0f, 10 * 8.0f);
+    
+    // Rectángulo del botón de MUTE (pixel art coords * escala 8)
+    sf::FloatRect muteButtonRect(73 * 8.0f, 47 * 8.0f, 13 * 8.0f, 10 * 8.0f);
+    bool isMuted = false; // Estado de mute
+
+    // ===== ASSETS CINEMÁTICOS DEL MENÚ =====
+    // Capa translúcida
+    sf::Texture translucentTexture;
+    if (!translucentTexture.loadFromFile("../assets/traslucido.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'traslucido.png' para el menú." << std::endl;
+    }
+    sf::Sprite translucentSprite(translucentTexture);
+    translucentSprite.setScale(8.0f, 8.0f);
+    sf::FloatRect translucentBounds = translucentSprite.getGlobalBounds();
+    translucentSprite.setPosition(
+        (window.getSize().x - translucentBounds.width) / 2.0f,
+        (window.getSize().y - translucentBounds.height) / 2.0f
+    );
+    // Aplicar transparencia (50% de opacidad)
+    translucentSprite.setColor(sf::Color(255, 255, 255, 200));
+
+    // Corales estáticos del menú - Arrecife denso con 12 corales variados
+    std::vector<sf::Sprite> menuCorals;
+    std::vector<std::string> coralAssets = {
+        "../assets/coralR1.png",
+        "../assets/coralR2.png",
+        "../assets/coralP1.png",
+        "../assets/coralP2.png"
+    };
+    std::vector<sf::Texture> coralTextures;
+    for (const auto& assetPath : coralAssets) {
+        sf::Texture coralTex;
+        if (!coralTex.loadFromFile(assetPath)) {
+            std::cerr << "Aviso: no se pudo cargar '" << assetPath << "' para el menú." << std::endl;
+        }
+        coralTextures.push_back(coralTex);
+    }
+
+    // Generar 12 corales distribuidos aleatoriamente a lo largo del ancho
+    std::random_device rdCoral;
+    std::mt19937 genCoral(rdCoral());
+    std::uniform_int_distribution<> menuCoralTypeDist(0, 3); // 4 tipos de coral
+    std::uniform_real_distribution<> menuCoralXDist(30.0f, static_cast<float>(window.getSize().x) - 30.0f);
+    std::uniform_real_distribution<> menuCoralYDist(600.0f, 650.0f);
+    
+    const int numMenuCorals = 12;
+    for (int i = 0; i < numMenuCorals; ++i) {
+        int coralType = menuCoralTypeDist(genCoral);
+        float coralX = menuCoralXDist(genCoral);
+        float coralY = menuCoralYDist(genCoral);
+        
+        sf::Sprite coralSprite(coralTextures[coralType]);
+        coralSprite.setScale(8.0f, 8.0f);
+        coralSprite.setPosition(coralX, coralY);
+        menuCorals.push_back(coralSprite);
+    }
+
+    // Actores cinemáticos del menú (Texturas direccionales)
+    // Cargar pez - dirección izquierda (normal)
+    sf::Texture menuFishTexture;
+    if (!menuFishTexture.loadFromFile("../assets/fish.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'fish.png' para el menú cinemático." << std::endl;
+    }
+    // Cargar pez - dirección derecha (espejeado)
+    sf::Texture menuFishTexture2;
+    if (!menuFishTexture2.loadFromFile("../assets/fish2.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'fish2.png' para el menú cinemático." << std::endl;
+    }
+    sf::Sprite menuFishSprite(menuFishTexture);
+    // Posición inicial basada en el tamaño de ventana; la piraña estará detrás del pez
+    float initFishX = static_cast<float>(window.getSize().x) * 0.6f;
+    float initFishY = static_cast<float>(window.getSize().y) * 0.35f;
+    menuFishSprite.setPosition(initFishX, initFishY);
+
+    // Cargar piraña - dirección izquierda (normal)
+    sf::Texture menuPiranhaTexture;
+    if (!menuPiranhaTexture.loadFromFile("../assets/piranha.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'piranha.png' para el menú cinemático." << std::endl;
+    }
+    // Cargar piraña - dirección derecha (espejeada)
+    sf::Texture menuPiranhaTexture2;
+    if (!menuPiranhaTexture2.loadFromFile("../assets/piranha2.png")) {
+        std::cerr << "Aviso: no se pudo cargar 'piranha2.png' para el menú cinemático." << std::endl;
+    }
+    sf::Sprite menuPiranhaSprite(menuPiranhaTexture);
+    // Colocar la piraña justo detrás del pez (misma altura Y)
+    menuPiranhaSprite.setPosition(initFishX + 80.0f, initFishY);
+
     // Contenedor para las burbujas
     std::vector<Bubble> bubbles;
     // Crear columna de pirañas en el borde derecho 
@@ -98,18 +229,19 @@ int main() {
         piranhas.emplace_back(sf::Vector2f(xPos, startY + i * spacing));
     }
 
-    // Dificultad del juego: variable maestra que aumenta lentamente
-    float gameDifficulty = 1.0f; // empieza en 1.0 (normal)
-    const float DIFFICULTY_INTERVAL = 10.0f; // cada 10 segundos
-    const float DIFFICULTY_STEP = 0.1f; // incremento de +0.1 por intervalo
-    const float MAX_DIFFICULTY = 3.0f; // límite máximo para evitar imposibilidad
-    // Tiempo total jugado (no aumenta en pausa)
-    float totalGameTime = 0.0f;
-    float lastDifficultyTime = 0.0f;
+    // Dificultad del juego: variable maestra que progresa de 1.0 a 3.0 en 10 minutos
+    float gameDifficulty = 1.0f; // empieza en 1.0 (normal), termina en 3.0 a los 600s
+    float totalGameTime = 0.0f; // Tiempo total jugado (no aumenta en pausa)
     
     // Guardar los tiempos base de spawn para poder escalarlos
-    float baseCoralSpawnInterval = 2.0f;
-    float baseCanSpawnInterval = 1.5f;
+    float basePiranhaSpawnInterval = 1.5f; // Base para cálculo de spawn agresivo
+    float baseCoralSpawnInterval = 3.0f;  // Base para cálculo de spawn agresivo
+    float baseCanSpawnInterval = 3.0f;    // Base para cálculo de spawn agresivo
+
+    // ===== LÓGICA CINEMÁTICA DEL MENÚ =====
+    bool menuMovingLeft = true;
+    float menuFishSpeed = 0.5f;
+    float menuPiranhaSpeed = 0.5f;
 
     // Contenedor para corales
     std::vector<Coral> corals;
@@ -136,6 +268,17 @@ int main() {
     }
 
     sf::Clock heartSpawnTimer; // temporizador para controlar la aparicion del corazon
+
+    // Cargar música de fondo
+    sf::Music bgMusic;
+    if (!bgMusic.openFromFile("../assets/Piranhas.mp3")) {
+        std::cerr << "Aviso: no se pudo cargar la música de fondo 'Piranhas.mp3'.\n";
+    } else {
+        bgMusic.setLoop(true);
+        bgMusic.setVolume(100);
+        bgMusic.play(); // Iniciar la música
+        std::cerr << "Música de fondo cargada y reproducida.\n";
+    }
 
     // Cargar textura de pantalla de game over
     sf::Texture gameOverTexture;
@@ -225,9 +368,72 @@ int main() {
                     isPaused = !isPaused;
                 }
             }
+            // Detectar clic en MENU (botón SALIR y botón PLAY)
+            if (currentState == MENU && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                if (exitButtonRect.contains(mousePos)) {
+                    window.close();
+                }
+                // Detectar clic en botón PLAY
+                if (playButtonRect.contains(mousePos)) {
+                    // Mostrar contador de 3 segundos como en el Reboot
+                    sf::Clock countdownClock;
+                    while (countdownClock.getElapsedTime().asSeconds() < 3.0f) {
+                        window.clear();
+                        window.draw(backgroundSprite);
+                        
+                        float elapsedSeconds = countdownClock.getElapsedTime().asSeconds();
+                        int countdownValue = static_cast<int>(3 - elapsedSeconds);
+                        if (countdownValue < 1) countdownValue = 0;
+                        
+                        sf::Text countdownText;
+                        countdownText.setFont(font);
+                        countdownText.setCharacterSize(120);
+                        countdownText.setFillColor(sf::Color::White);
+                        countdownText.setStyle(sf::Text::Bold);
+                        countdownText.setString(std::to_string(countdownValue));
+                        
+                        // Centrar el contador en la pantalla
+                        sf::FloatRect textBounds = countdownText.getLocalBounds();
+                        countdownText.setPosition(
+                            (window.getSize().x - textBounds.width) / 2.0f,
+                            (window.getSize().y - textBounds.height) / 2.0f
+                        );
+                        
+                        window.draw(countdownText);
+                        window.display();
+                        
+                        // Manejar eventos para permitir cerrar la ventana
+                        sf::Event closeEvent;
+                        while (window.pollEvent(closeEvent)) {
+                            if (closeEvent.type == sf::Event::Closed) {
+                                window.close();
+                                return 0;
+                            }
+                        }
+                    }
+                    
+                    // Después del countdown, cambiar a PLAY y reiniciar todo
+                    currentState = PLAY;
+                    window.setMouseCursorVisible(false); // Ocultar cursor durante el juego
+                    gameClock.restart(); // Reiniciar el reloj del juego
+                    coralSpawnTimer.restart();
+                    canSpawnTimer.restart();
+                    heartSpawnTimer.restart();
+                    totalGameTime = 0.0f; // Reiniciar el contador de tiempo
+                    std::cerr << "Transitioning to PLAY state after countdown. Cursor hidden.\n";
+                }
+                // Detectar clic en botón MUTE
+                if (muteButtonRect.contains(mousePos)) {
+                    isMuted = !isMuted; // Alternar estado
+                    bgMusic.setVolume(isMuted ? 0 : 100); // Aplicar cambio de volumen
+                    std::cerr << "Music muted: " << (isMuted ? "ON" : "OFF") << "\n";
+                }
+            }
         }
         
         // Lógica - SOLO si no está pausado ni en game over
+        if (currentState == PLAY) {
         if (!isPaused && !isGameOver) {
             fish.update(window); 
         }
@@ -245,20 +451,36 @@ int main() {
         // Solo actualizar lógica de juego si no está pausado y no está en game over
         if (!isPaused && !isGameOver) {
 
-        // Actualizar dificultad basada en totalGameTime cada DIFFICULTY_INTERVAL segundos
-        if (totalGameTime - lastDifficultyTime >= DIFFICULTY_INTERVAL) {
-            gameDifficulty += DIFFICULTY_STEP;
-            if (gameDifficulty > MAX_DIFFICULTY) {
-                gameDifficulty = MAX_DIFFICULTY;
-            }
-            lastDifficultyTime = totalGameTime;
-            std::cerr << "Difficulty increased: " << gameDifficulty << " (max: " << MAX_DIFFICULTY << ")" << std::endl;
+        // Calcular dificultad: progresa linealmente de 1.0 a 3.0 en 300 segundos (5 minutos DEMO)
+        float progress = std::min(totalGameTime / 300.0f, 1.0f);
+        gameDifficulty = 1.0f + (progress * 2.0f);
+        
+        // Log de dificultad cada segundo
+        static float lastLogTime = 0.0f;
+        if (totalGameTime - lastLogTime >= 1.0f) {
+            std::cerr << "Game Time: " << totalGameTime << "s, Difficulty: " << gameDifficulty << std::endl;
+            lastLogTime = totalGameTime;
         }
 
         // Actualizar pirañas (aplicar dificultad antes de actualizar)
         for (size_t i = 0; i < piranhas.size(); ++i) {
             piranhas[i].applyDifficulty(gameDifficulty);
             piranhas[i].update(deltaTime);
+        }
+
+        // Control de activación de pirañas desde el game loop
+        // Nueva fórmula solicitada: piranhaInterval = 1.8f / (gameDifficulty * 1.8f)
+        // (equivalente a 1.0f / gameDifficulty, pero aplicamos exactamente la expresión)
+        static float piranhaAccumulator = 0.0f;
+        float piranhaInterval = 1.8f / (gameDifficulty * 1.8f);
+        piranhaAccumulator += deltaTime;
+        while (piranhaAccumulator >= piranhaInterval) {
+            // Elegir una piraña aleatoria para activar
+            std::uniform_int_distribution<> pIndexDist(0, static_cast<int>(piranhas.size() - 1));
+            int idx = pIndexDist(gen);
+            piranhas[idx].triggerAttackNow();
+            piranhaAccumulator -= piranhaInterval;
+            std::cerr << "Piranha triggered at index " << idx << " | Difficulty: " << gameDifficulty << "\n";
         }
 
         // Colisiones con pirañas
@@ -359,13 +581,17 @@ int main() {
                                         // Reiniciar el juego después del contador
                                         fish.reset();
                                         totalGameTime = 0.0f;
-                                        lastDifficultyTime = 0.0f;
                                         gameDifficulty = 1.0f;
                                         corals.clear();
                                         cans.clear();
                                         bubbles.clear();
                                         heart.setIsVisible(false);
-                                        window.setMouseCursorVisible(false);
+                                        currentState = PLAY; // Cambiar directamente a PLAY
+                                        window.setMouseCursorVisible(false); // Ocultar cursor durante el juego
+                                        gameClock.restart(); // Reiniciar el reloj del juego
+                                        coralSpawnTimer.restart();
+                                        canSpawnTimer.restart();
+                                        heartSpawnTimer.restart();
                                         restartGame = true;
                                     }
                                     // Detectar clic en el boton de salida
@@ -383,8 +609,8 @@ int main() {
             }
         }
 
-        // Spawn aleatorio de corales con frecuencia escalada por dificultad
-        coralSpawnInterval = baseCoralSpawnInterval / gameDifficulty;
+        // Spawn aleatorio de corales con frecuencia escalada agresivamente por dificultad
+        coralSpawnInterval = baseCoralSpawnInterval / (gameDifficulty * 1.2f);
         if (coralSpawnTimer.getElapsedTime().asSeconds() >= coralSpawnInterval) {
             int type = coralTypeDist(gen);
             float xPos = coralXDist(gen);
@@ -498,13 +724,18 @@ int main() {
                                         // Reiniciar el juego despues del contador
                                         fish.reset();
                                         totalGameTime = 0.0f;
-                                        lastDifficultyTime = 0.0f;
+                                        
                                         gameDifficulty = 1.0f;
                                         corals.clear();
                                         cans.clear();
                                         bubbles.clear();
                                         heart.setIsVisible(false);
-                                        window.setMouseCursorVisible(false);
+                                        currentState = PLAY; // Cambiar directamente a PLAY
+                                        window.setMouseCursorVisible(false); // Ocultar cursor durante el juego
+                                        gameClock.restart(); // Reiniciar el reloj del juego
+                                        coralSpawnTimer.restart();
+                                        canSpawnTimer.restart();
+                                        heartSpawnTimer.restart();
                                         restartGame = true;
                                     }
                                     // Detectar clic en el boton de salida
@@ -529,14 +760,24 @@ int main() {
             }
         }
 
-        // Spawn aleatorio de latas con frecuencia escalada por dificultad
-        canSpawnInterval = baseCanSpawnInterval / gameDifficulty;
-        if (canSpawnTimer.getElapsedTime().asSeconds() >= canSpawnInterval) {
+        // Spawn de latas con ráfagas: base aleatoria entre 0.3 y 2.3 segundos, dividida por la dificultad
+        static float canSpawnAccumulator = 0.0f;
+        float baseInterval = (rand() % 200 + 30) / 100.0f; // [0.30, 2.30]
+        float timeToNextSpawn = baseInterval / gameDifficulty;
+
+        canSpawnAccumulator += deltaTime;
+
+        while (canSpawnAccumulator >= timeToNextSpawn) {
             int type = canTypeDist(gen);
             float xPos = canXDist(gen);
-            cans.emplace_back(sf::Vector2f(xPos, -30.0f), type);  // Spawn en la parte superior
-            std::cerr << "Can spawned at X: " << xPos << " Type: " << type << "! Total cans: " << cans.size() << std::endl;
-            canSpawnTimer.restart();
+            cans.emplace_back(sf::Vector2f(xPos, -30.0f), type);
+            std::cerr << "CAN SPAWN: Type " << type << " at X:" << xPos
+                      << " | Difficulty: " << gameDifficulty
+                      << " | Interval: " << timeToNextSpawn << "s" << std::endl;
+
+            canSpawnAccumulator -= timeToNextSpawn;
+            baseInterval = (rand() % 200 + 30) / 100.0f;
+            timeToNextSpawn = baseInterval / gameDifficulty;
         }
 
         // Actualizar latas (con dificultad aplicada)
@@ -644,13 +885,18 @@ int main() {
                                         // Reiniciar el juego despues del contador
                                         fish.reset();
                                         totalGameTime = 0.0f;
-                                        lastDifficultyTime = 0.0f;
+                                        
                                         gameDifficulty = 1.0f;
                                         corals.clear();
                                         cans.clear();
                                         bubbles.clear();
                                         heart.setIsVisible(false);
-                                        window.setMouseCursorVisible(false);
+                                        currentState = PLAY; // Cambiar directamente a PLAY
+                                        window.setMouseCursorVisible(false); // Ocultar cursor durante el juego
+                                        gameClock.restart(); // Reiniciar el reloj del juego
+                                        coralSpawnTimer.restart();
+                                        canSpawnTimer.restart();
+                                        heartSpawnTimer.restart();
                                         restartGame = true;
                                     }
                                     // Detectar clic en el botón de salida
@@ -725,10 +971,80 @@ int main() {
             window.setMouseCursorVisible(true);
         }
         } // Fin de if (!isPaused && !isGameOver)
+        } // Fin de if (currentState == PLAY)
+
+        // ===== LÓGICA DE ACTUALIZACIÓN DEL MENÚ =====
+        if (currentState == MENU) {
+            // Movimiento cinemático: mover SOLO al pez, anclar la piraña detrás (parenting)
+            if (menuMovingLeft) {
+                // Movimiento hacia la izquierda
+                menuFishSprite.move(-menuFishSpeed, 0.0f);
+                // Texturas para mirar a la izquierda
+                menuFishSprite.setTexture(menuFishTexture);
+                menuPiranhaSprite.setTexture(menuPiranhaTexture);
+                // Anclar piraña detrás a la derecha del pez
+                sf::Vector2f fishPos = menuFishSprite.getPosition();
+                menuPiranhaSprite.setPosition(fishPos.x + 120.0f, fishPos.y);
+            } else {
+                // Movimiento hacia la derecha
+                menuFishSprite.move(menuFishSpeed, 0.0f);
+                // Texturas espejeadas para mirar a la derecha
+                menuFishSprite.setTexture(menuFishTexture2);
+                menuPiranhaSprite.setTexture(menuPiranhaTexture2);
+                // Anclar piraña detrás a la izquierda del pez
+                sf::Vector2f fishPos = menuFishSprite.getPosition();
+                menuPiranhaSprite.setPosition(fishPos.x - 120.0f, fishPos.y);
+            }
+
+            // Verificar si ambos han salido completamente de la pantalla
+            sf::FloatRect fishBounds = menuFishSprite.getGlobalBounds();
+            sf::FloatRect piranhaGlobalBounds = menuPiranhaSprite.getGlobalBounds();
+            
+            bool fishOffScreen = (menuMovingLeft && fishBounds.left + fishBounds.width < 0.0f) ||
+                                 (!menuMovingLeft && fishBounds.left > static_cast<float>(window.getSize().x));
+            bool piranhaOffScreen = (menuMovingLeft && piranhaGlobalBounds.left + piranhaGlobalBounds.width < 0.0f) ||
+                                    (!menuMovingLeft && piranhaGlobalBounds.left > static_cast<float>(window.getSize().x));
+
+            if (fishOffScreen && piranhaOffScreen) {
+                // Invertir dirección
+                menuMovingLeft = !menuMovingLeft;
+
+                // Reposicionar actores en el extremo opuesto
+                // Generar Y aleatoria usando rand() para variedad (evitar bordes)
+                float randomY = static_cast<float>(std::rand() % (window.getSize().y - 200) + 100);
+
+                if (menuMovingLeft) {
+                    // Reaparecen por la derecha; la piraña queda detrás (a la derecha del pez)
+                    float fishX = static_cast<float>(window.getSize().x) + 50.0f;
+                    menuFishSprite.setPosition(fishX, randomY);
+                    menuPiranhaSprite.setPosition(fishX + 80.0f, randomY);
+                } else {
+                    // Reaparecen por la izquierda; la piraña queda detrás (a la izquierda del pez)
+                    float fishX = -100.0f;
+                    menuFishSprite.setPosition(fishX, randomY);
+                    menuPiranhaSprite.setPosition(fishX - 80.0f, randomY);
+                }
+            }
+        }
 
         // Dibujo
-        window.clear();
-        window.draw(backgroundSprite);
+        if (currentState == MENU) {
+            window.clear();
+            // Orden de capas del MENÚ:
+            window.draw(seaSprite);           // Fondo
+            
+            // Dibujar corales decorativos
+            for (size_t i = 0; i < menuCorals.size(); ++i) {
+                window.draw(menuCorals[i]);
+            }
+            
+            window.draw(menuPiranhaSprite);   // Piraña detrás del pez
+            window.draw(menuFishSprite);      // Pez
+            window.draw(translucentSprite);   // Capa translúcida (efecto visual)
+            window.draw(menuSprite);          // Texto y botones (frente)
+        } else {
+            window.clear();
+            window.draw(backgroundSprite);
         
         // Dibujar burbujas antes del pez
         for (size_t i = 0; i < bubbles.size(); ++i) {
@@ -802,6 +1118,8 @@ int main() {
             window.draw(exitSprite);
         }
 
+        }
+
         // Manejo de eventos en menús (pausa o game over) - clics de botones
         if (isPaused || isGameOver) {
             sf::Vector2i mousePos = sf::Mouse::getPosition(window);
@@ -813,7 +1131,6 @@ int main() {
                     // Reiniciar juego
                     fish.reset();
                     totalGameTime = 0.0f;
-                    lastDifficultyTime = 0.0f;
                     gameDifficulty = 1.0f;
                     corals.clear();
                     cans.clear();

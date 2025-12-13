@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Iinclude -IC:/Users/Ascencio/Documents/CETI/POO/SFML/include
-LDFLAGS = -LC:/Users/Ascencio/Documents/CETI/POO/SFML/lib -lsfml-graphics -lsfml-window -lsfml-system
+LDFLAGS = -LC:/Users/Ascencio/Documents/CETI/POO/SFML/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
 SRC = $(wildcard src/*.cpp)
 # Transforma la lista de archivos fuente (src/X.cpp) en archivos objeto (build/X.o)

@@ -1,0 +1,102 @@
+name: Publicar en Galería CETUS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Instalar dependencias SFML
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsfml-dev
+
+      - name: 🔨 Compilar proyecto
+        run: |
+          make clean
+          make
+
+      - name: 📦 Empaquetar ejecutable
+        run: |
+          mkdir -p release-package
+          
+          # Copiar ejecutable compilado
+          if [ -f "build/game.exe" ]; then
+            cp build/game.exe release-package/
+          else
+            echo "⚠️ Ejecutable no encontrado en build/"
+            exit 1
+          fi
+          
+          # Copiar assets
+          if [ -d "assets" ]; then
+            cp -r assets release-package/
+          else
+            echo "⚠️ Carpeta assets/ no encontrada"
+            exit 1
+          fi
+          
+          # Crear ZIP
+          cd release-package
+          zip -r ../juego-proyecto-252.zip .
+          cd ..
+          
+          SIZE=$(du -h juego-proyecto-252.zip | cut -f1)
+          echo "✅ ZIP creado: $SIZE"
+
+      - name: 🔢 Generar versión
+        id: version
+        run: |
+          VERSION="v1.0.${{ github.run_number }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Crear Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## 🎮 Proyecto 252 - Release ${{ steps.version.outputs.version }}
+            
+            **Commit:** ${{ github.sha }}
+            **Fecha:** ${{ github.event.head_commit.timestamp }}
+            
+            ### 📦 Contenido
+            - Ejecutable compilado (game.exe)
+            - Assets necesarios
+            
+            ### ⬇️ Descarga
+            Descarga `juego-proyecto-252.zip` para jugar.
+          draft: false
+          prerelease: false
+          files: |
+            juego-proyecto-252.zip
+
+      - name: 📡 Notificar a CETUS
+        run: |
+          echo "🔔 Enviando notificación a CETUS..."
+          curl -X POST https://cetus.logiasimbolica.com/api/webhook/github \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: release" \
+            -d '{"action":"published","repository":{"full_name":"${{ github.repository }}"},"release":{"tag_name":"${{ steps.version.outputs.version }}"}}' \
+            -w "\n📊 Status: %{http_code}\n" \
+            || echo "⚠️ Notificación a CETUS falló (release creado en GitHub)"
+
+      - name: 📋 Resumen
+        run: |
+          echo "## 🎉 Publicación Exitosa" >> $GITHUB_STEP_SUMMARY
+          echo "- **Versión:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Descarga:** [juego-proyecto-252.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/juego-proyecto-252.zip)" >> $GITHUB_STEP_SUMMARY

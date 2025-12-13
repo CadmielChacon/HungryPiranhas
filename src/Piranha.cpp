@@ -119,6 +119,18 @@ void Piranha::update(float deltaTime) {
     }
 }
 
+void Piranha::triggerAttackNow() {
+    // Force this piranha to start an attack cycle immediately if idle
+    shouldAttackThisCycle = true;
+    if (state == IDLE) {
+        state = ALERT;
+        stateTimer.restart();
+        alertBlinkTimer.restart();
+    }
+    // restart the attackCycleTimer so internal timing remains consistent
+    attackCycleTimer.restart();
+}
+
 void Piranha::draw(sf::RenderWindow& window) {
     // Si esta en estado ALERT, hacer parpadeo
     if (state == ALERT) {
