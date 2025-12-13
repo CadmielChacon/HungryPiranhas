@@ -430,6 +430,15 @@ int main() {
                     std::cerr << "Music muted: " << (isMuted ? "ON" : "OFF") << "\n";
                 }
             }
+
+            // Detectar clic en GAMEOVER (botones reiniciar / salir)
+            if (currentState == GAMEOVER && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                // Si el jugador hace clic en el boton de salida, cerrar la ventana
+                if (exitSprite.getGlobalBounds().contains(mousePos)) {
+                    window.close();
+                }
+            }
         }
         
         // Lógica - SOLO si no está pausado ni en game over
