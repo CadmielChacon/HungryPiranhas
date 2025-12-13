@@ -47,9 +47,8 @@ Es un control intuitivo y accesible para todo tipo de jugador.
 
 ### 👥 Equipo
 
-- **Líder**: Nombre Completo (@usuario-github)
+- **Líder**: Cadmiel Yareli Chacon Camacho (CadmielChacon)
 - **Integrante 2**: Nombre Completo (@usuario-github)
-- **Integrante 3**: Nombre Completo (@usuario-github)
 
 ### 🛠️ Tecnologías
 
