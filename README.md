@@ -15,6 +15,7 @@ Tu puntaje se basa en cuánto tiempo sobrevives.
 
 
 - **Mouse:** controla completamente la posición del pez
+- **Tecla Espacio:** pausa la partida / regresa a la partida
 - **(Opcional)** Click izquierdo para interactuar en futuros menús o modos
 Es un control intuitivo y accesible para todo tipo de jugador.
 
@@ -31,6 +32,8 @@ Es un control intuitivo y accesible para todo tipo de jugador.
 
 - **Efectos visuales:**
   * Burbujas que suben, se desvanecen y desaparecen suavemente.
+  * Parpadeo en el pez por colicion.
+  * Pantalla de inicio animada con una persecucion.
   * Fondo oceánico a pantalla completa.
 
 ### 🏆 Características
@@ -48,7 +51,7 @@ Es un control intuitivo y accesible para todo tipo de jugador.
 ### 👥 Equipo
 
 - **Líder**: Cadmiel Yareli Chacon Camacho (CadmielChacon)
-- **Integrante 2**: Nombre Completo (@usuario-github)
+- **Integrante 2**: Yael Abdiel Gonzalez Martinez (Abdiel367)
 
 ### 🛠️ Tecnologías
 
@@ -57,7 +60,7 @@ Es un control intuitivo y accesible para todo tipo de jugador.
 - **IDE:** Visual Studio Code
 - **Compilación:** MinGW (g++) + Makefile
 - **Control de Versiones:** Git / GitHub
-- **Edición de arte:** PixilArt
+- **Edición de arte:** PixilArt, Piskel.
 - **Fuentes:** Google Fonts (Pixelify Sans)
 
 ### 📜 Créditos
